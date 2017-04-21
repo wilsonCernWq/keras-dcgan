@@ -4,7 +4,7 @@ from keras.layers import Reshape
 from keras.layers.core import Activation
 from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import UpSampling2D
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Flatten
 from keras.optimizers import SGD
 from keras.datasets import mnist
@@ -16,30 +16,27 @@ import math
 
 def generator_model():
     model = Sequential()
-    model.add(Dense(input_dim=100, output_dim=1024))
+    model.add(Dense(input_dim=100, units=1024))
     model.add(Activation('tanh'))
     model.add(Dense(128*7*7))
     model.add(BatchNormalization())
     model.add(Activation('tanh'))
     model.add(Reshape((128, 7, 7), input_shape=(128*7*7,)))
     model.add(UpSampling2D(size=(2, 2)))
-    model.add(Convolution2D(64, 5, 5, border_mode='same'))
+    model.add(Conv2D(64, (5, 5), padding='same'))
     model.add(Activation('tanh'))
     model.add(UpSampling2D(size=(2, 2)))
-    model.add(Convolution2D(1, 5, 5, border_mode='same'))
+    model.add(Conv2D(1, (5, 5), padding='same'))
     model.add(Activation('tanh'))
     return model
 
 
 def discriminator_model():
     model = Sequential()
-    model.add(Convolution2D(
-                        64, 5, 5,
-                        border_mode='same',
-                        input_shape=(1, 28, 28)))
+    model.add(Conv2D(64, (5, 5), padding='same', input_shape=(1, 28, 28)))
     model.add(Activation('tanh'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Convolution2D(128, 5, 5))
+    model.add(Conv2D(128, (5, 5)))
     model.add(Activation('tanh'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Flatten())
@@ -101,7 +98,7 @@ def train(BATCH_SIZE):
                 image = combine_images(generated_images)
                 image = image*127.5+127.5
                 Image.fromarray(image.astype(np.uint8)).save(
-                    str(epoch)+"_"+str(index)+".png")
+                    "output/"+str(epoch)+"_"+str(index)+".png")
             X = np.concatenate((image_batch, generated_images))
             y = [1] * BATCH_SIZE + [0] * BATCH_SIZE
             d_loss = discriminator.train_on_batch(X, y)
@@ -114,8 +111,8 @@ def train(BATCH_SIZE):
             discriminator.trainable = True
             print("batch %d g_loss : %f" % (index, g_loss))
             if index % 10 == 9:
-                generator.save_weights('generator', True)
-                discriminator.save_weights('discriminator', True)
+                generator.save_weights('output/generator', True)
+                discriminator.save_weights('output/discriminator', True)
 
 
 def generate(BATCH_SIZE, nice=False):
@@ -149,7 +146,7 @@ def generate(BATCH_SIZE, nice=False):
         image = combine_images(generated_images)
     image = image*127.5+127.5
     Image.fromarray(image.astype(np.uint8)).save(
-        "generated_image.png")
+        "output/generated_image.png")
 
 
 def get_args():
